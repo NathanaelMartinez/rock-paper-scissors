@@ -108,9 +108,19 @@ class UIManager {
     }
 
     static displayOutcomesTable(outcomes, moves) {
-        const table = new AsciiTable('Outcomes')
-        table.setHeading('', 'rock', 'paper', 'scissors');
-        table.addRowMatrix(outcomes);
+        const outcomeDescriptions = {
+            0: 'Draw',
+            1: 'Player wins',
+            '-1': 'Computer wins'
+        };
+        const table = new AsciiTable('Rules Table')
+        table.setHeading('Player \\ Computer', ...moves);
+        for (let i = 0; i < outcomes.length; i++) {
+            // map numbers to descriptions
+            const outcomesRow = outcomes[i].map(outcome => outcomeDescriptions[outcome]);
+            table.addRow(moves[i], ...outcomesRow);
+        }
+        this.message(table.toString());
     }
 }
 
@@ -145,8 +155,6 @@ class GameLogic {
             }
             outcomes.push(row);
         }
-        console.log(outcomes);
-
         return outcomes;
     }
 }
