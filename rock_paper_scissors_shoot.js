@@ -113,7 +113,7 @@ class UIManager {
             1: 'Lose',
             '-1': 'Win'
         };
-        const table = new AsciiTable('Rules Table')
+        const table = new AsciiTable('Rules Table (Player\'s Point of View)')
         table.setHeading('v Computer \\ Player >', ...moves);
         for (let i = 0; i < outcomes.length; i++) {
             // map numbers to descriptions
