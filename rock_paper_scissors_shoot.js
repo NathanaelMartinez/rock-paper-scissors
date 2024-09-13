@@ -82,12 +82,66 @@ class UIManager {
         console.clear();  // clear console each time game restarts
         console.log(title);
     }
+
+    static declareWinner(outcome, computerMove, userMove) {
+        if (outcome === 1) {
+            this.message(`${computerMove} beats ${userMove}`);
+            this.message('Computer wins!');
+        } else if (outcome === -1) {
+            this.message(`${userMove} beats ${computerMove}`);
+            this.message('You win!');            
+        } else if (outcome === 0) {
+            this.message('Draw');
+        }
+    }
+
+    static playAgainPrompt() {
+        let response;
+        // loop until valid input
+        while (true) {
+            response = prompt('Play again? (y/n): ').toLowerCase();  // case-insensitive
+            if (response === 'y' || response === 'n') {
+                return response === 'y';  // return true if 'y'. otherwise false
+            }
+            this.message('Invalid input, please enter "y" or "n".');
+        }
+    }
 }
 
 class GameLogic {
-    static determineWinner(userMove, computerMove, moves) {
-        // TODO: add logic Math.sign((a - b + p + n) % n - p);
-        return 'Who wins? Who can say?'; // placeholder
+    static determineOutcome(computerMove, userMove, moves) {
+        /*
+        formula: Math.sign((a - b + p + n) % n - p);
+        a: Index of the first move (computerMove).
+        b: Index of the second move (userMove).
+        n: Total number of possible moves.
+        p: Half of n (floored) = number of moves each move beats (move beats half the moves in circular array).
+        */
+        const a = moves.indexOf(computerMove);
+        const b = moves.indexOf(userMove);
+        const n = moves.length;
+        const p = Math.floor(n/2);
+        const outcome = Math.sign((a - b + p + n) % n - p);
+
+        return outcome;
+    }
+
+    // get possible outcomes for rules table
+    static getAllOutcomes(moves) {
+        const outcomes = [];
+        const numberOfMoves = moves.length
+        // iterate through all move combinations
+        for (let i = 0; i < numberOfMoves; i++) {
+            const row = [];
+            for (let j = 0; j < numberOfMoves; j++) {
+                const result = this.determineOutcome(moves[i], moves[j], moves);
+                row.push(result);
+            }
+            outcomes.push(row);
+        }
+        console.log(outcomes);
+
+        return outcomes;
     }
 }
 
@@ -106,7 +160,6 @@ class GameManager {
     async gameLoop() {
         // simulate computer move randomly
         const computerMove = this.moves[Math.floor(Math.random() * this.moves.length)];
-        // TODO: ensure that HMAC is changing every time
         const hmac = this.cryptoManager.calculateHMAC(computerMove);
         UIManager.message(`HMAC: ${hmac}`); // display HMAC for validation
 
@@ -116,16 +169,25 @@ class GameManager {
             UIManager.message('Exiting the game...');
             process.exit(0);
         } else if (userMove === 'help') {
-            UIManager.message('In this game, a move wins against the next half of the moves in the sequence and loses to the previous half.');
+            // UIManager.message('In this game, a move wins against the next half of the moves in the sequence and loses to the previous half.');
+            UIManager.message(`${GameLogic.getAllOutcomes(this.moves)}`);
             return this.gameLoop(); // restart
         }
 
         UIManager.message(`Your move: ${userMove}`);
         UIManager.message(`Computer move: ${computerMove}`);
         
-        const result = GameLogic.determineWinner(userMove, computerMove, this.moves);
-        UIManager.message(result);
+        const outcome = GameLogic.determineOutcome(computerMove, userMove, this.moves);
+        UIManager.declareWinner(outcome, computerMove, userMove);
         UIManager.message(`HMAC Key: ${this.cryptoManager.getKey()}`);
+
+        // game over - play again?
+        if (UIManager.playAgainPrompt()) {
+            return this.gameLoop(); // restart
+        } else {
+            UIManager.message('Thanks for playing! Exiting now.');
+            process.exit(0);  // quit game
+        }
     }
 }
 
