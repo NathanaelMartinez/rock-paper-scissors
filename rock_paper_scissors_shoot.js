@@ -110,11 +110,11 @@ class UIManager {
     static displayOutcomesTable(outcomes, moves) {
         const outcomeDescriptions = {
             0: 'Draw',
-            1: 'Player wins',
-            '-1': 'Computer wins'
+            1: 'Lose',
+            '-1': 'Win'
         };
         const table = new AsciiTable('Rules Table')
-        table.setHeading('Player \\ Computer', ...moves);
+        table.setHeading('v Computer \\ Player >', ...moves);
         for (let i = 0; i < outcomes.length; i++) {
             // map numbers to descriptions
             const outcomesRow = outcomes[i].map(outcome => outcomeDescriptions[outcome]);
