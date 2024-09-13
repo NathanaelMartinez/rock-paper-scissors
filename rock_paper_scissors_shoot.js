@@ -1,11 +1,14 @@
 // ascii-table
 import crypto from 'crypto';
-import { rawlist  } from '@inquirer/prompts';
+import promptSync from 'prompt-sync';
+
+// using prompt-sync to handle sigint 
+const prompt = promptSync({ sigint: true });
 
 class GameError {
     static displayError(message) {
         console.error(`Error: ${message}`);
-        console.error("Example usage: node rock_paper_scissors_shoot.js Rock Paper Scissors Spock Shoot");
+        console.error('Example usage: node rock_paper_scissors_shoot.js Rock Paper Scissors Spock Shoot');
         process.exit(1);
     }
 }
@@ -22,13 +25,13 @@ class GameConfig {
 
     validateMoves() {
         if (this.moves.length < 3 || this.moves.length % 2 === 0) {
-            GameError.displayError("You must provide an odd number of moves, and it should be ≥ 3");
+            GameError.displayError('You must provide an odd number of moves, and it should be ≥ 3');
         }
 
         // eliminate repeating moves
         const movesSet = new Set(this.moves);
         if (movesSet.size !== this.moves.length) {
-            GameError.displayError("All moves must be unique");
+            GameError.displayError('All moves must be unique');
         }
     }
 }
@@ -38,29 +41,53 @@ class CryptoManager {
         this.key = crypto.randomBytes(32);  // generate a 256 bit cryptographically strong random key
     }
     calculateHMAC(move) {
-        return crypto.createHmac('sha256', this.key).update(move).digest("hex");
+        return crypto.createHmac('sha256', this.key).update(move).digest('hex');
     }
     getKey() {
-        return this.key.toString("hex"); // make readable
+        return this.key.toString('hex'); // make readable
     }
 }
 class UIManager {
-    static async getUserMove(choices) {
-        return rawlist({
-            message: "Choose your move:",
-            choices
+    static displayMenu(choices) {
+        this.message('Available moves:');
+        choices.forEach((choice, index) => {
+            this.message(`${index + 1} - ${choice}`);
         });
+        // add 'exit' and 'help'
+        this.message('0 - exit');
+        this.message('? - help');
+    }
+
+    static selectMove(choices) {
+        this.displayMenu(choices);
+
+        let userInput = prompt('Enter your move: ');
+        if (userInput === '0') {
+            return 'exit';
+        } else if (userInput === '?') {
+            return 'help';
+        } else if (userInput >= '1' && userInput <= `${choices.length}`) {
+            return choices[parseInt(userInput) - 1]; // Return selected move
+        } else {
+            this.message('\nInvalid input, please try again.\n');
+            return this.selectMove(choices); // recursive - needs return
+        }
     }
 
     static message(message) {
         console.log(message);
+    }
+
+    static displayTitle(title) {
+        console.clear();  // clear console each time game restarts
+        console.log(title);
     }
 }
 
 class GameLogic {
     static determineWinner(userMove, computerMove, moves) {
         // TODO: add logic Math.sign((a - b + p + n) % n - p);
-        return "Who wins? Who can say?"; // placeholder
+        return 'Who wins? Who can say?'; // placeholder
     }
 }
 
@@ -68,25 +95,29 @@ class GameManager {
     constructor(moves) {
         this.moves = moves;
         this.cryptoManager = new CryptoManager();
-        this.selections = [...moves.map(move => ({ name: move, value: move })),
-            { name: "Exit", value: "exit", key: "0" }, { name: "Help", value: "help", key: "?" }];
     }
 
-    async play() {
-        UIManager.message("~~~ Rock Paper Scissors Shoot ~~~");
+    async startGame() {
+        // only display title when starting game for first time
+        UIManager.displayTitle('~~~ Rock Paper Scissors Shoot ~~~');
+        await this.gameLoop();
+    }
+
+    async gameLoop() {
         // simulate computer move randomly
         const computerMove = this.moves[Math.floor(Math.random() * this.moves.length)];
         // TODO: ensure that HMAC is changing every time
         const hmac = this.cryptoManager.calculateHMAC(computerMove);
         UIManager.message(`HMAC: ${hmac}`); // display HMAC for validation
 
-        const userMove = await UIManager.getUserMove(this.selections);
-        if (userMove === "exit") {
-            UIManager.message("Exiting the game...");
+        const userMove = await UIManager.selectMove(this.moves);
+
+        if (userMove === 'exit') {
+            UIManager.message('Exiting the game...');
             process.exit(0);
-        } else if (userMove === "help") {
-            UIManager.message("In this game, a move wins against the next half of the moves in the sequence and loses to the previous half.");
-            return this.play(); // restart
+        } else if (userMove === 'help') {
+            UIManager.message('In this game, a move wins against the next half of the moves in the sequence and loses to the previous half.');
+            return this.gameLoop(); // restart
         }
 
         UIManager.message(`Your move: ${userMove}`);
@@ -100,4 +131,4 @@ class GameManager {
 
 const config = new GameConfig(process.argv);
 const game = new GameManager(config.moves);
-game.play();
+game.startGame();
