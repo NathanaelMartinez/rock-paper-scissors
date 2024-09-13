@@ -1,4 +1,4 @@
-// ascii-table
+import AsciiTable from 'ascii-table';
 import crypto from 'crypto';
 import promptSync from 'prompt-sync';
 
@@ -106,6 +106,12 @@ class UIManager {
             this.message('Invalid input, please enter "y" or "n".');
         }
     }
+
+    static displayOutcomesTable(outcomes, moves) {
+        const table = new AsciiTable('Outcomes')
+        table.setHeading('', 'rock', 'paper', 'scissors');
+        table.addRowMatrix(outcomes);
+    }
 }
 
 class GameLogic {
@@ -169,8 +175,9 @@ class GameManager {
             UIManager.message('Exiting the game...');
             process.exit(0);
         } else if (userMove === 'help') {
-            // UIManager.message('In this game, a move wins against the next half of the moves in the sequence and loses to the previous half.');
-            UIManager.message(`${GameLogic.getAllOutcomes(this.moves)}`);
+            const outcomes = GameLogic.getAllOutcomes(this.moves);
+            // render outcomes as table
+            UIManager.displayOutcomesTable(outcomes, this.moves);
             return this.gameLoop(); // restart
         }
 
